@@ -1,3 +1,7 @@
+import SearchResults from "@/pages/SearchResults";
+
+// Inside your <Routes>:
+<Route path="/search" element={<SearchResults />} />
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +30,7 @@ const App = () => (
           <Route path="/signals" element={<SignalsUniverse />} />
           <Route path="/regulatory" element={<RegulatoryChecker />} />
           <Route path="/about" element={<About />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

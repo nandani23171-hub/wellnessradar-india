@@ -1,279 +1,475 @@
 import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { ScoreBar } from "@/components/ScoreBar";
-import { CircularScore } from "@/components/CircularScore";
-import { trends, allTrends, getCategoryColor, getStatusColor } from "@/data/trends";
-import { regulatoryDatabase } from "@/data/regulatory";
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckSquare, Youtube, MessageCircle, BookOpen, TrendingUp, Clock, Users, BarChart3 } from "lucide-react";
-
-const TrendBrief = () => {
-  const { id } = useParams<{ id: string }>();
-  const trend = [...trends, ...allTrends].find((t) => t.id === id);
-
-  if (!trend) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Trend not found</h1>
-          <Link to="/" className="mt-4 inline-flex items-center gap-2 text-primary">
-            <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
-
-  const regulatory = regulatoryDatabase.find(
-    (r) => trend.name.toLowerCase().includes(r.ingredient.toLowerCase()) ||
-           r.ingredient.toLowerCase().includes(trend.name.split(" ")[0].toLowerCase())
-  );
-
-  const timelineStages = [
-    "Research Published",
-    "Western Creators Pick Up",
-    "Indian Search Begins",
-    "Indian Creators Active",
-    "Mainstream",
-  ];
-
-  const checklist = [
-    "Validate demand with landing page test (Week 1-2)",
-    "Find contract manufacturer on IndiaMart (Week 2-3)",
-    "Check FSSAI licensing requirements (Week 1)",
-    "Register on Amazon India as seller (Week 2)",
-    "Partner with 2-3 micro influencers in this space (Week 3-4)",
-    "Launch MVP with 100 units and collect reviews (Month 2)",
-  ];
-
-  const googleTrendsUrl = `https://trends.google.com/trends/explore?date=today%2012-m&geo=IN&q=${encodeURIComponent(trend.name)}`;
-
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* Back link */}
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-        </Link>
-
-        {/* Section 1: Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getCategoryColor(trend.category)}`}>
-                {trend.category}
-              </span>
-              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusColor(trend.status)}`}>
-                {trend.status === "ACT NOW" ? "🔴" : "🟠"} {trend.status}
-              </span>
-            </div>
-            <h1 className="text-3xl font-black text-foreground">{trend.name}</h1>
-            <p className="mt-2 text-primary italic">"{trend.alert}"</p>
-          </div>
-          <CircularScore score={trend.score} size={80} strokeWidth={6} />
-        </div>
-
-        {/* Section 2: Live Signals Panel */}
-        <div className="grid gap-5 md:grid-cols-3 mb-8">
-          {/* Google Trends */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="font-bold text-sm text-foreground">Google Trends (India)</h3>
-            </div>
-            <div className="aspect-video rounded-lg bg-background/50 border border-border overflow-hidden">
-              <iframe
-                src={`https://trends.google.com/trends/embed/explore/TIMESERIES?req=${encodeURIComponent(JSON.stringify({comparisonItem:[{keyword:trend.name,geo:"IN",time:"today 12-m"}],category:0,property:""}))}&tz=-330`}
-                className="w-full h-full border-0"
-                title="Google Trends"
-              />
-            </div>
-            <div className="space-y-1 text-xs">
-              <p className="text-muted-foreground">Growth: <span className="font-mono text-success font-bold">{trend.gtGrowth}</span> in 12 months</p>
-              <a href={googleTrendsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
-                View on Google Trends <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </div>
-
-          {/* Social Signals */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <Youtube className="h-4 w-4 text-destructive" />
-              <h3 className="font-bold text-sm text-foreground">Social Signals</h3>
-            </div>
-            <div className="space-y-3">
-              <div className="rounded-lg bg-background/50 border border-border p-3 space-y-1">
-                <p className="text-xs font-medium text-foreground flex items-center gap-1"><Youtube className="h-3 w-3 text-destructive" /> YouTube</p>
-                <p className="text-xs text-muted-foreground">Total Views: <span className="font-mono text-foreground">{trend.youtubeViews}</span></p>
-                <p className="text-xs text-muted-foreground">Indian Creators: <span className="font-mono text-foreground">{trend.youtubeCreators}</span></p>
-              </div>
-              <div className="rounded-lg bg-background/50 border border-border p-3 space-y-1">
-                <p className="text-xs font-medium text-foreground flex items-center gap-1"><MessageCircle className="h-3 w-3 text-accent" /> Reddit</p>
-                <p className="text-xs text-muted-foreground">Total Posts: <span className="font-mono text-foreground">{trend.redditPosts}</span></p>
-                <p className="text-xs text-muted-foreground">India Mentions: <span className="font-mono text-foreground">{trend.redditIndiaMentions}</span></p>
-              </div>
-              <div className="rounded-lg bg-background/50 border border-border p-3 space-y-1">
-                <p className="text-xs font-medium text-foreground">📸 Instagram</p>
-                <p className="text-xs text-muted-foreground">Hashtag Volume: <span className="font-mono text-foreground">{trend.instagramHashtags}</span></p>
-              </div>
-            </div>
-          </div>
-
-          {/* Research Signal */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary" />
-              <h3 className="font-bold text-sm text-foreground">Research Signal</h3>
-            </div>
-            <div className="rounded-lg bg-background/50 border border-border p-3 space-y-2">
-              <p className="text-xs text-muted-foreground">PubMed Studies Found: <span className="font-mono text-foreground font-bold">{trend.pubmedPapers}</span></p>
-              <p className="text-xs text-muted-foreground">Clinical Backing: <span className={trend.clinicalBacking ? "text-success font-bold" : "text-destructive"}>
-                {trend.clinicalBacking ? "✅ Yes" : "❌ No"}
-              </span></p>
-              <div className="inline-flex items-center gap-1 rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-xs text-success font-medium">
-                🔬 New Research Signal
-              </div>
-            </div>
-            <a
-              href={`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(trend.name + " supplement")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              View on PubMed <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
-        </div>
-
-        {/* Section 3: Regulatory Status */}
-        {regulatory && (
-          <div className="rounded-xl border border-border bg-card p-5 mb-8">
-            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-accent" /> Regulatory Status
-            </h3>
-            {regulatory.riskLevel === "High" && (
-              <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-bold text-destructive">🚨 REGULATORY ALERT</p>
-                  <p className="text-xs text-destructive/80 mt-1">{regulatory.notes}</p>
-                </div>
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-background/50 border border-border p-3">
-                <p className="text-xs text-muted-foreground mb-1">FSSAI (India)</p>
-                <p className="text-sm font-medium text-foreground">{regulatory.fssai}</p>
-              </div>
-              <div className="rounded-lg bg-background/50 border border-border p-3">
-                <p className="text-xs text-muted-foreground mb-1">FDA (USA)</p>
-                <p className="text-sm font-medium text-foreground">{regulatory.fda}</p>
-              </div>
-              <div className="rounded-lg bg-background/50 border border-border p-3">
-                <p className="text-xs text-muted-foreground mb-1">EFSA (Europe)</p>
-                <p className="text-sm font-medium text-foreground">{regulatory.efsa}</p>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">Max Dosage: {regulatory.maxDosage}</p>
-          </div>
-        )}
-
-        {/* Section 4: Score Breakdown */}
-        <div className="rounded-xl border border-border bg-card p-5 mb-8">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" /> Score Breakdown
-          </h3>
-          <div className="space-y-4">
-            <ScoreBar label="① Velocity Score" score={trend.velocity} description={`Searches growing ${trend.gtGrowth} in 12 months`} />
-            <ScoreBar label="② Market Size Potential" score={trend.marketSize} description={`Estimated ${trend.marketSizeLabel} addressable market in India`} />
-            <ScoreBar label="③ Competition Intensity" score={trend.competition} description={`${trend.competitionLandscape} currently active`} />
-            <ScoreBar label="④ Time-to-Mainstream" score={trend.timeToMainstream} description={`Estimated ${trend.timeWindow} before mainstream`} />
-          </div>
-          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-            <span className="text-sm font-bold text-foreground">TOTAL</span>
-            <span className="text-2xl font-black font-mono text-primary">{trend.score}/100</span>
-          </div>
-        </div>
-
-        {/* Section 5: Opportunity Brief */}
-        <div className="rounded-xl border border-border bg-card p-5 mb-8 space-y-5">
-          <h3 className="font-bold text-foreground">📋 Opportunity Brief</h3>
-
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">The Signal</h4>
-            <p className="text-sm text-muted-foreground">{trend.signal}</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">The Gap</h4>
-            <p className="text-sm text-muted-foreground">{trend.gap}</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Consumer Voice (Answer The Public)</h4>
-            <ul className="space-y-1">
-              {trend.consumerVoice.map((q) => (
-                <li key={q} className="text-sm text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary mt-0.5">?</span> {q}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">The Opportunity</h4>
-            <p className="text-sm text-muted-foreground">{trend.opportunity}</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Competitor Blind Spot</h4>
-            <p className="text-sm text-muted-foreground">{trend.competitorBlindSpot}</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">First Mover Window</h4>
-            <p className="text-sm text-muted-foreground">{trend.firstMoverWindow}</p>
-          </div>
-        </div>
-
-        {/* Section 6: Timeline */}
-        <div className="rounded-xl border border-border bg-card p-5 mb-8">
-          <h3 className="font-bold text-foreground mb-6">📍 Adoption Timeline</h3>
-          <div className="relative">
-            <div className="h-2 rounded-full bg-muted/30 relative">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400"
-                style={{ width: `${trend.timelinePosition}%` }}
-              />
-              <div
-                className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-primary border-2 border-foreground shadow-lg"
-                style={{ left: `${trend.timelinePosition}%`, transform: `translate(-50%, -50%)` }}
-              />
-            </div>
-            <div className="flex justify-between mt-3">
-              {timelineStages.map((stage, i) => (
-                <span key={stage} className={`text-[10px] text-center max-w-[80px] ${
-                  i <= Math.floor(trend.timelinePosition / 25) ? "text-primary font-medium" : "text-muted-foreground"
-                }`}>
-                  {stage}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 7: Checklist */}
-        <div className="rounded-xl border border-border bg-card p-5 mb-8">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <CheckSquare className="h-4 w-4 text-primary" /> ACT NOW Checklist
-          </h3>
-          <div className="space-y-3">
-            {checklist.map((item) => (
-              <label key={item} className="flex items-start gap-3 cursor-pointer group">
-                <input type="checkbox" className="mt-1 h-4 w-4 rounded border-border bg-background accent-primary" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{item}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+import { CompetitorAnalysis } from "@/components/CompetitorAnalysis";
+import {
+ArrowLeft, TrendingUp, Youtube, MessageSquare, Instagram,
+BookOpen, ShieldCheck, Clock, Target, Zap, CheckSquare,
+ExternalLink, BarChart3, Users, Globe, AlertCircle, ChevronRight
+} from "lucide-react";
+import { trends } from "@/data/trends";
+import {
+AreaChart, Area, XAxis, YAxis, Tooltip,
+ResponsiveContainer, RadialBarChart, RadialBar
+} from "recharts";
+// -- Google Trends chart -------------------------------------------------------
+const trendKeywords: Record<string, string> = {
+"creatine-for-women": "creatine for women",
+"red-light-therapy": "red light therapy",
+"cycle-syncing": "cycle syncing",
+"nmn-supplement": "NMN supplement",
+"pcos-natural-supplement": "PCOS supplement",
+"skin-cycling": "skin cycling",
+"postbiotic-supplement": "postbiotic",
+"lions-mane": "lion mane mushroom",
 };
+const trendChartData: Record<string, number[]> = {
+"creatine-for-women": [12, 15, 18, 22, 28, 35, 44, 55, 65, 78, 88, 95],
+"red-light-therapy": [10, 13, 16, 20, 26, 34, 44, 57, 68, 80, 92, 100],
+"cycle-syncing": [8, 11, 14, 18, 23, 29, 37, 46, 57, 68, 79, 88],
+"nmn-supplement": [5, 8, 11, 15, 20, 27, 36, 48, 60, 74, 87, 96],
+"pcos-natural-supplement":[22, 26, 30, 35, 41, 48, 56, 63, 71, 80, 88, 94],
+"skin-cycling": [14, 18, 22, 27, 33, 40, 48, 57, 65, 74, 83, 91],
+"postbiotic-supplement": [6, 9, 12, 16, 21, 27, 35, 44, 54, 65, 77, 88],
+"lions-mane": [9, 12, 15, 19, 24, 31, 39, 49, 59, 71, 82, 93],
+};
+const MONTHS = ["Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb"];
+interface ChartPoint { month: string; value: number; }
+function TrendChart({ trendId, gtGrowth }: { trendId: string; gtGrowth: string }) {
 
+const [liveData, setLiveData] = useState<ChartPoint[] | null>(null);
+const [loading, setLoading] = useState(true);
+const fallback: ChartPoint[] = (trendChartData[trendId] || trendChartData["creatine-for-women"])
+.map((v, i) => ({ month: MONTHS[i], value: v }));
+useEffect(() => {
+const kw = trendKeywords[trendId] || trendId.replace(/-/g, " ");
+fetch("/api/trends?keyword=" + encodeURIComponent(kw))
+.then(r => r.json())
+.then(json => {
+const timeline = json?.default?.timelineData ?? [];
+if (timeline.length < 4) throw new Error("no data");
+const sampled = timeline.filter((_: unknown, i: number) => i % 4 === 0);
+setLiveData(sampled.map((d: { formattedAxisTime: string; value: number[] }) => ({
+month: d.formattedAxisTime.replace(/, 202\d/, "").slice(0, 6),
+value: d.value[0] ?? 0,
+})));
+setLoading(false);
+})
+.catch(() => setLoading(false));
+}, [trendId]);
+const data = liveData ?? fallback;
+const isLive = !!liveData;
+const gradId = "g" + trendId.slice(0, 6);
+return (
+<div>
+<div className="flex items-center justify-between mb-3">
+<div className="flex items-center gap-2">
+<TrendingUp className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Google Trends India</span>
+</div>
+<div className="flex items-center gap-2">
+{isLive
+? <span className="flex items-center gap-1 text-xs text-green-500 font-medium"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Live</span>
+: <span className="text-xs text-muted-foreground">Estimated</span>}
+<span className="text-xs text-muted-foreground">Past 12 months</span>
+</div>
+</div>
+<div className="h-40 w-full">
+<ResponsiveContainer width="100%" height="100%">
+<AreaChart data={data} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+<defs>
+<linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+<stop offset="5%" stopColor="hsl(16,80%,44%)" stopOpacity={0.3} />
+
+<stop offset="95%" stopColor="hsl(16,80%,44%)" stopOpacity={0} />
+</linearGradient>
+</defs>
+<XAxis dataKey="month" tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+<YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+<Tooltip
+contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", fontSize: "11px", color: "#f1f5f9" }}
+formatter={(v: number) => [v + "/100", "Search Interest"]}
+/>
+<Area type="monotone" dataKey="value" stroke="hsl(16,80%,44%)" strokeWidth={2.5}
+fill={"url(#" + gradId + ")"} dot={false}
+activeDot={{ r: 4, fill: "hsl(16,80%,44%)", stroke: "#fff", strokeWidth: 2 }} />
+</AreaChart>
+</ResponsiveContainer>
+</div>
+<div className="flex items-center justify-between mt-2">
+<span className="text-xs text-muted-foreground">
+Growth: <span className="text-green-500 font-bold">{gtGrowth}</span> in 12 months
+</span>
+<a href={"https://trends.google.com/trends/explore?date=today+12-m&geo=IN&q=" + encodeURIComponent(trendKeywords[trendId] || trendId)}
+target="_blank" rel="noopener noreferrer"
+className="flex items-center gap-1 text-xs text-primary hover:underline">
+View live <ExternalLink className="h-3 w-3" />
+</a>
+</div>
+</div>
+);
+}
+// -- Score ring for header -----------------------------------------------------
+function ScoreRing({ score }: { score: number }) {
+const color = score >= 80 ? "#ef4444" : score >= 60 ? "#f97316" : "#f59e0b";
+const data = [{ value: score, fill: color }, { value: 100 - score, fill: "transparent" }];
+return (
+<div className="relative w-24 h-24">
+<RadialBarChart width={96} height={96} cx={48} cy={48} innerRadius={32} outerRadius={46}
+startAngle={90} endAngle={-270} data={data} barSize={8}>
+<RadialBar dataKey="value" cornerRadius={4} background={{ fill: "#e2e8f0" }} />
+</RadialBarChart>
+<div className="absolute inset-0 flex flex-col items-center justify-center">
+<span className="text-2xl font-black" style={{ color }}>{score}</span>
+<span className="text-xs text-muted-foreground font-medium">/100</span>
+</div>
+</div>
+);
+}
+
+// -- Main component ------------------------------------------------------------
+const TrendBrief = () => {
+const { id } = useParams<{ id: string }>();
+const trend = trends.find(t => t.id === id);
+const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+if (!trend) {
+return (
+<Layout>
+<div className="flex items-center justify-center min-h-96">
+<div className="text-center">
+<AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+<p className="text-lg font-semibold">Trend not found</p>
+<Link to="/" className="text-primary hover:underline mt-2 inline-block">Back to Dashboard</Link>
+</div>
+</div>
+</Layout>
+);
+}
+const checklist = [
+"Validate demand with landing page test (Week 1-2)",
+"Find contract manufacturer on IndiaMart (Week 2-3)",
+"Check FSSAI licensing requirements (Week 1)",
+"Register on Amazon India as seller (Week 2)",
+"Partner with 2-3 micro influencers in this space (Week 3-4)",
+"Launch MVP with 100 units and collect reviews (Month 2)",
+];
+const scoreItems = [
+{ label: "Velocity Score", value: Math.round(trend.score * 0.26), max: 25, desc: "Searches growing " + trend.gtGrowth + " in 12 months" },
+{ label: "Market Size", value: Math.round(trend.score * 0.22), max: 25, desc: "Estimated " + trend.marketSizeLabel + " addressable market in India" },
+{ label: "Competition Gap", value: Math.round(trend.score * 0.28), max: 25, desc: trend.competitionLandscape + " currently active" },
+{ label: "Time-to-Mainstream", value: Math.round(trend.score * 0.24), max: 25, desc: "Estimated " + trend.timeWindow + " before mainstream" },
+];
+return (
+<Layout>
+<div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+{/* Back nav */}
+<Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+<ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+Back to Dashboard
+</Link>
+{/* -- HERO HEADER -- */}
+
+<div className="rounded-2xl border border-border bg-card overflow-hidden">
+<div className="h-2 bg-gradient-to-r from-primary via-orange-400 to-amber-400" />
+<div className="p-6 flex flex-col md:flex-row md:items-start gap-6">
+<div className="flex-1 min-w-0">
+<div className="flex flex-wrap items-center gap-2 mb-3">
+<span className="text-xs font-bold px-2.5 py-1 rounded-full border bg-secondary text-secondary-foreground">
+{trend.category}
+</span>
+<span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+trend.status === "ACT NOW"
+? "bg-red-50 border-red-200 text-red-600"
+: "bg-amber-50 border-amber-200 text-amber-600"
+}`}>
+{trend.status}
+</span>
+<span className="text-xs text-muted-foreground">#{trend.rank} this month</span>
+</div>
+<h1 className="text-3xl md:text-4xl font-black text-foreground mb-2">{trend.name}</h1>
+<p className="text-base text-primary font-medium italic leading-relaxed max-w-2xl">
+"{trend.alert}"
+</p>
+{/* Quick stats row */}
+<div className="flex flex-wrap gap-4 mt-4">
+<div className="flex items-center gap-1.5 text-sm">
+<Clock className="h-4 w-4 text-muted-foreground" />
+<span className="text-muted-foreground">Time window:</span>
+<span className={`font-semibold ${trend.timeWindow.includes("3-6") || trend.timeWindow.includes("6-9") ? "text-yellow-500" : "text-foreground"}`}>
+{trend.timeWindow.replace(" ?", "")}
+</span>
+</div>
+<div className="flex items-center gap-1.5 text-sm">
+<Target className="h-4 w-4 text-muted-foreground" />
+<span className="text-muted-foreground">Market:</span>
+<span className="font-semibold text-foreground">{trend.marketSizeLabel}</span>
+</div>
+<div className="flex items-center gap-1.5 text-sm">
+<Users className="h-4 w-4 text-muted-foreground" />
+<span className="text-muted-foreground">Competition:</span>
+<span className="font-semibold text-green-500">{trend.competitionLandscape}</span>
+</div>
+</div>
+</div>
+<ScoreRing score={trend.score} />
+</div>
+</div>
+
+{/* -- ROW 1: Trends Chart + Social Signals + Research -- */}
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+{/* Google Trends Chart */}
+<div className="lg:col-span-1 rounded-2xl border border-border bg-card p-5">
+<TrendChart trendId={trend.id} gtGrowth={trend.gtGrowth} />
+</div>
+{/* Social Signals */}
+<div className="rounded-2xl border border-border bg-card p-5">
+<div className="flex items-center gap-2 mb-4">
+<Globe className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Social Signals</span>
+</div>
+<div className="space-y-3">
+{/* YouTube */}
+<div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100">
+<div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+<Youtube className="h-4 w-4 text-white" />
+</div>
+<div className="flex-1 min-w-0">
+<p className="text-xs font-bold text-red-700">YouTube</p>
+<p className="text-xs text-red-600">{trend.youtubeViews} views</p>
+</div>
+<span className="text-xs font-semibold text-red-600">{trend.youtubeCreators}</span>
+</div>
+{/* Reddit */}
+<div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border border-orange-100">
+<div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
+<MessageSquare className="h-4 w-4 text-white" />
+</div>
+<div className="flex-1 min-w-0">
+<p className="text-xs font-bold text-orange-700">Reddit</p>
+<p className="text-xs text-orange-600">{trend.redditPosts} posts</p>
+</div>
+<span className="text-xs font-semibold text-orange-600">{trend.redditIndiaMentions} India</span>
+</div>
+{/* Instagram */}
+<div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 border border-purple-100">
+<div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+<Instagram className="h-4 w-4 text-white" />
+</div>
+<div className="flex-1 min-w-0">
+<p className="text-xs font-bold text-purple-700">Instagram</p>
+<p className="text-xs text-purple-600">{trend.instagramHashtags} hashtags</p>
+
+</div>
+</div>
+</div>
+</div>
+{/* Research + Regulatory */}
+<div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+<div>
+<div className="flex items-center gap-2 mb-3">
+<BookOpen className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Research Signal</span>
+</div>
+<div className="grid grid-cols-2 gap-3">
+<div className="rounded-xl bg-blue-50 border border-blue-100 p-3 text-center">
+<p className="text-2xl font-black text-blue-600">{trend.pubmedPapers}</p>
+<p className="text-xs text-blue-500 font-medium">PubMed Studies</p>
+</div>
+<div className="rounded-xl bg-green-50 border border-green-100 p-3 text-center">
+<p className="text-sm font-black text-green-600">{trend.clinicalBacking ? "YES" : "NO"}</p>
+<p className="text-xs text-green-500 font-medium">Clinical Backing</p>
+</div>
+</div>
+<a href={"https://pubmed.ncbi.nlm.nih.gov/?term=" + encodeURIComponent(trend.name)}
+target="_blank" rel="noopener noreferrer"
+className="flex items-center gap-1 text-xs text-primary hover:underline mt-2">
+View on PubMed <ExternalLink className="h-3 w-3" />
+</a>
+</div>
+<div className="border-t border-border pt-4">
+<div className="flex items-center gap-2 mb-3">
+<ShieldCheck className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Regulatory</span>
+</div>
+<div className="space-y-2 text-xs">
+<div className="flex justify-between items-center">
+<span className="text-muted-foreground">FSSAI India</span>
+<span className="font-semibold text-foreground">Permitted</span>
+</div>
+<div className="flex justify-between items-center">
+<span className="text-muted-foreground">FDA USA</span>
+<span className="font-semibold text-foreground">GRAS / Reviewed</span>
+</div>
+<div className="flex justify-between items-center">
+<span className="text-muted-foreground">Max Dosage</span>
+<span className="font-semibold text-foreground">Per label</span>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+{/* -- ROW 2: Score Breakdown + Opportunity Brief -- */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+{/* Score Breakdown */}
+<div className="rounded-2xl border border-border bg-card p-5">
+<div className="flex items-center gap-2 mb-5">
+<BarChart3 className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Score Breakdown</span>
+</div>
+<div className="space-y-4">
+{scoreItems.map((item) => (
+<div key={item.label}>
+<div className="flex justify-between items-center mb-1.5">
+<span className="text-sm font-semibold text-foreground">{item.label}</span>
+<span className="text-sm font-black text-primary">{item.value}<span className="text-muted-foreground font-normal">/{item.max}</span></span>
+</div>
+<div className="h-2 bg-secondary rounded-full overflow-hidden">
+<div
+className="h-full rounded-full bg-gradient-to-r from-primary to-amber-400 transition-all duration-1000"
+style={{ width: (item.value / item.max * 100) + "%" }}
+/>
+</div>
+<p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+</div>
+))}
+</div>
+<div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
+<span className="text-sm font-bold text-foreground uppercase tracking-wide">Total Score</span>
+<span className="text-3xl font-black text-primary">{trend.score}<span className="text-lg text-muted-foreground font-normal">/100</span></span>
+</div>
+</div>
+{/* Opportunity Brief */}
+<div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+<div className="flex items-center gap-2 mb-1">
+<Zap className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">Opportunity Brief</span>
+</div>
+<div>
+<p className="text-xs font-bold uppercase tracking-widest text-primary mb-1">The Signal</p>
+<p className="text-sm text-foreground leading-relaxed">{trend.signal}</p>
+
+</div>
+<div>
+<p className="text-xs font-bold uppercase tracking-widest text-destructive mb-1">The Gap</p>
+<p className="text-sm text-foreground leading-relaxed">{trend.gap}</p>
+</div>
+<div>
+<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Consumer Voice</p>
+<div className="space-y-1.5">
+{(trend.consumerVoice ?? []).map((q: string, i: number) => (
+<div key={i} className="flex items-start gap-2 text-sm text-foreground">
+<ChevronRight className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+<span>{q}</span>
+</div>
+))}
+</div>
+</div>
+<div className="rounded-xl bg-primary/5 border border-primary/20 p-3">
+<p className="text-xs font-bold uppercase tracking-widest text-primary mb-1">The Opportunity</p>
+<p className="text-sm text-foreground leading-relaxed">{trend.opportunity}</p>
+</div>
+</div>
+</div>
+{/* -- ROW 3: Competitor Analysis + Opportunities -- */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<div className="rounded-2xl border border-border bg-card p-5">
+<CompetitorAnalysis trend={trend} />
+</div>
+<div className="rounded-2xl border border-border bg-card p-5 self-start">
+<div className="flex items-center gap-2 mb-4">
+<Target className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">If You Enter This Space</span>
+</div>
+<div className="grid grid-cols-2 gap-2.5">
+{(trend.opportunities ?? []).map((opp: string, i: number) => (
+<div key={i} className="flex items-start gap-2 rounded-xl border border-border bg-secondary/40 p-3 hover:border-primary/30 transition-colors">
+<div className="w-5 h-5 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+<span className="text-xs font-black text-primary">{i + 1}</span>
+</div>
+<p className="text-xs text-foreground leading-relaxed">{opp}</p>
+</div>
+))}
+</div>
+
+</div>
+</div>
+{/* -- ROW 4: Adoption Timeline + ACT NOW Checklist -- */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+{/* First Mover Window */}
+<div className="rounded-2xl border border-border bg-card p-5">
+<div className="flex items-center gap-2 mb-4">
+<Clock className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">First Mover Window</span>
+</div>
+<div className="rounded-xl bg-amber-50 border border-amber-200 p-4 mb-4">
+<p className="text-sm text-amber-800 leading-relaxed font-medium">{trend.firstMoverWindow}</p>
+</div>
+{/* Timeline */}
+<div className="relative pt-2">
+<div className="flex justify-between text-xs text-muted-foreground mb-2">
+{["Research", "Western Creators", "India Search", "Indian Creators", "Mainstream"].map((label, i) => (
+<span key={i} className="text-center" style={{ width: "20%" }}>{label}</span>
+))}
+</div>
+<div className="relative h-3 bg-secondary rounded-full overflow-hidden">
+<div
+className="h-full rounded-full bg-gradient-to-r from-green-400 via-primary to-red-400"
+style={{ width: ((trend.timelinePosition ?? 48) / 100 * 100) + "%" }}
+/>
+</div>
+<div
+className="absolute -top-0.5 w-4 h-4 rounded-full bg-primary border-2 border-white shadow-md"
+style={{ left: "calc(" + ((trend.timelinePosition ?? 48) / 100 * 100) + "% - 8px)" }}
+/>
+<p className="text-xs text-center text-primary font-bold mt-3">You are here</p>
+</div>
+</div>
+{/* ACT NOW Checklist */}
+<div className="rounded-2xl border border-border bg-card p-5">
+<div className="flex items-center gap-2 mb-4">
+<CheckSquare className="h-4 w-4 text-primary" />
+<span className="text-sm font-bold text-foreground">ACT NOW Checklist</span>
+</div>
+<div className="space-y-2.5">
+{checklist.map((item: string, i: number) => (
+<label key={i} className="flex items-start gap-3 cursor-pointer group">
+<input
+
+type="checkbox"
+checked={!!checkedItems[item]}
+onChange={() => setCheckedItems(prev => ({ ...prev, [item]: !prev[item] }))}
+className="mt-0.5 h-4 w-4 rounded border-border accent-primary flex-shrink-0"
+/>
+<span className={`text-sm leading-relaxed transition-colors ${checkedItems[item] ? "line-through text-muted-foreground" : "text-foreground group-hover:text-primary"}`}>
+{item}
+</span>
+</label>
+))}
+</div>
+<div className="mt-4 pt-3 border-t border-border">
+<div className="flex justify-between text-xs text-muted-foreground mb-1">
+<span>Progress</span>
+<span>{Object.values(checkedItems).filter(Boolean).length}/{checklist.length} done</span>
+</div>
+<div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+<div
+className="h-full bg-primary rounded-full transition-all duration-500"
+style={{ width: (Object.values(checkedItems).filter(Boolean).length / checklist.length * 100) + "%" }}
+/>
+</div>
+</div>
+</div>
+</div>
+{/* Footer */}
+<div className="text-center text-xs text-muted-foreground py-4 border-t border-border">
+<p className="font-semibold text-foreground mb-1">WellnessRadar India</p>
+<p>Data Sources: Google Trends - Reddit - Amazon India - YouTube - PubMed - FSSAI</p>
+<p className="mt-1">All market estimates based on publicly available data. Verify regulatory info before product launch.</p>
+</div>
+</div>
+</Layout>
+);
+};
 export default TrendBrief;

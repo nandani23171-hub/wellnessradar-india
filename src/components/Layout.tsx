@@ -43,7 +43,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="hidden items-center gap-2 text-xs font-mono md:flex">
             <span className="inline-block h-2 w-2 rounded-full bg-success pulse-live" />
             <span className="text-success">LIVE</span>
-            <span className="text-muted-foreground">— Last scan: March 2025</span>
+            <span className="text-muted-foreground">— Last scan: March 2026</span>
           </div>
 
           {/* Mobile nav toggle */}
@@ -84,7 +84,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mb-2">
-            Built for the Mosaic Wellness Fellowship 2025
+            Built for the Mosaic Wellness Fellowship 2026
           </p>
           <p className="text-xs text-muted-foreground mb-4">
             Data Sources: Google Trends • Reddit • Amazon India • YouTube • Answer The Public • PubMed • FSSAI
