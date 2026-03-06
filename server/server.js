@@ -3,7 +3,11 @@ const cors = require("cors");
 const googleTrends = require("google-trends-api");
 
 const app = express();
-app.use(cors({ origin: "*" }));
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
 app.use(express.json());
 
 require("dotenv").config();
