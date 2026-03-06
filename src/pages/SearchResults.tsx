@@ -4,12 +4,51 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import {
-  ArrowLeft, Search, TrendingUp,
-  ShieldCheck, AlertCircle, CheckCircle2, XCircle, Zap,
+  ArrowLeft, Search, TrendingUp, TrendingDown,
+  ShieldCheck, AlertCircle, CheckCircle2, XCircle, Zap, Users, Building2, Shield,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
+
+interface Competitor {
+  name: string;
+  product?: string;
+  priceRange: string;
+  strength: string;
+  weakness: string;
+}
+
+interface SocialSignals {
+  reddit: {
+    estimatedPosts: string;
+    topSubreddits: string[];
+    sentimentScore: string;
+    topDiscussion: string;
+    indianVsGlobal: string;
+  };
+  youtube: {
+    estimatedVideos: string;
+    indianCreators: string;
+    estimatedViews: string;
+    topVideoType: string;
+    growthTrend: string;
+  };
+  instagram: {
+    estimatedPosts: string;
+    topHashtags: string[];
+    indianInfluencers: string;
+    contentType: string;
+  };
+}
+
+interface RegulatoryStatus {
+  fssai: string;
+  fssaiNote: string;
+  fdaUSA: string;
+  safetyRating: string;
+  clinicalStudies: string;
+}
 
 interface AIResult {
   name: string;
@@ -25,6 +64,13 @@ interface AIResult {
   signal: string;
   gap: string;
   opportunity: string;
+  whyTrending?: string;
+  whyDeclining?: string | null;
+  fadReason?: string | null;
+  indianConsumerSegment?: string;
+  competitors?: Competitor[];
+  socialSignals?: SocialSignals;
+  regulatoryStatus?: RegulatoryStatus;
   fadVsReal: {
     clinicalBacking: boolean;
     westernMainstream2yrs: boolean;
@@ -37,9 +83,9 @@ interface AIResult {
 
 const LOADING_STEPS = [
   "Fetching Google Trends India data",
-  "Calculating growth velocity",
-  "Estimating market size",
-  "Generating opportunity brief",
+  "Scanning social signals — Reddit, YouTube, Instagram",
+  "Analysing Indian market & competitors",
+  "Generating AI opportunity brief",
 ];
 
 const MONTHS = ["Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb"];
@@ -78,8 +124,21 @@ function getActionStyles(action: string) {
     case "ACT NOW":       return "bg-destructive/10 text-destructive border-destructive/30";
     case "WATCH":         return "bg-accent/10 text-accent border-accent/30";
     case "RESEARCH MORE": return "bg-amber-500/10 text-amber-600 border-amber-500/30";
+    case "SKIP":          return "bg-red-100 text-red-600 border-red-300";
     default:              return "bg-muted text-muted-foreground border-border";
   }
+}
+
+function getSentimentColor(s: string) {
+  if (s === "Positive") return "text-green-600 bg-green-50 border-green-200";
+  if (s === "Negative") return "text-red-600 bg-red-50 border-red-200";
+  return "text-amber-600 bg-amber-50 border-amber-200";
+}
+
+function getRegulatoryColor(s: string) {
+  if (s === "Permitted" || s === "GRAS" || s === "Approved" || s === "Safe") return "text-green-700 bg-green-50 border-green-200";
+  if (s === "Restricted" || s === "Not Approved") return "text-red-700 bg-red-50 border-red-200";
+  return "text-amber-700 bg-amber-50 border-amber-200";
 }
 
 const SearchResults = () => {
@@ -105,7 +164,7 @@ const SearchResults = () => {
 
     const iv = setInterval(
       () => setDotStep((d) => Math.min(d + 1, LOADING_STEPS.length - 1)),
-      800
+      900
     );
 
     try {
@@ -137,8 +196,8 @@ const SearchResults = () => {
   };
 
   const vs = result ? getVerdictStyles(result.verdict) : null;
+  const isFad = result?.verdict === "FAD";
 
-  // Build chart data from trendData array
   const chartData = result?.trendData
     ? result.trendData
         .filter((_, i) => i % Math.max(1, Math.floor(result.trendData!.length / 12)) === 0)
@@ -184,7 +243,7 @@ const SearchResults = () => {
             <div className="flex items-center gap-3 mb-6">
               <div className="w-5 h-5 rounded-full border-2 border-primary/20 border-t-primary animate-spin flex-shrink-0" />
               <span className="text-sm text-foreground">
-                Analysing <span className="font-bold text-primary">"{query}"</span> using live Google Trends data...
+                Analysing <span className="font-bold text-primary">"{query}"</span> across Google Trends, Reddit, YouTube & Instagram...
               </span>
             </div>
             <div className="space-y-3 pl-2">
@@ -238,6 +297,26 @@ const SearchResults = () => {
               <ScoreRing score={result.score} />
             </div>
 
+            {/* FAD WARNING */}
+            {isFad && (result.fadReason || result.whyDeclining) && (
+              <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                  <span className="text-sm font-bold text-red-700 uppercase tracking-widest">Why You Should NOT Pursue This</span>
+                </div>
+                {result.fadReason && <p className="text-sm text-red-700 leading-relaxed mb-3">{result.fadReason}</p>}
+                {result.whyDeclining && (
+                  <>
+                    <div className="flex items-center gap-2 mb-2 mt-4">
+                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Why It Is Declining</span>
+                    </div>
+                    <p className="text-sm text-red-600 leading-relaxed">{result.whyDeclining}</p>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Live trend chart */}
             {chartData.length > 0 && (
               <div className="rounded-2xl border border-border bg-card p-5">
@@ -254,8 +333,8 @@ const SearchResults = () => {
                     <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                       <defs>
                         <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%"  stopColor="hsl(16,80%,44%)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(16,80%,44%)" stopOpacity={0} />
+                          <stop offset="5%"  stopColor={isFad ? "#EF4444" : "hsl(16,80%,44%)"} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={isFad ? "#EF4444" : "hsl(16,80%,44%)"} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -264,9 +343,10 @@ const SearchResults = () => {
                         contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }}
                         formatter={(v: number) => [v + "/100", "Search Interest"]}
                       />
-                      <Area type="monotone" dataKey="value" stroke="hsl(16,80%,44%)" strokeWidth={2.5}
+                      <Area type="monotone" dataKey="value"
+                        stroke={isFad ? "#EF4444" : "hsl(16,80%,44%)"} strokeWidth={2.5}
                         fill="url(#trendGrad)" dot={false}
-                        activeDot={{ r: 4, fill: "hsl(16,80%,44%)", stroke: "#fff", strokeWidth: 2 }} />
+                        activeDot={{ r: 4, fill: isFad ? "#EF4444" : "hsl(16,80%,44%)", stroke: "#fff", strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -289,6 +369,134 @@ const SearchResults = () => {
               ))}
             </div>
 
+            {/* Social Signals */}
+            {result.socialSignals && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-base">📡</span>
+                  <span className="text-sm font-bold text-foreground">Social Signals — India</span>
+                  <span className="ml-auto text-xs text-muted-foreground">AI-estimated based on trend data</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                  {/* Reddit */}
+                  <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">🔴</span>
+                      <span className="font-bold text-sm text-foreground">Reddit India</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Est. Posts</span>
+                        <span className="text-xs font-bold text-foreground">{result.socialSignals.reddit.estimatedPosts}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Indian %</span>
+                        <span className="text-xs font-bold text-foreground">{result.socialSignals.reddit.indianVsGlobal}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Sentiment</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getSentimentColor(result.socialSignals.reddit.sentimentScore)}`}>
+                          {result.socialSignals.reddit.sentimentScore}
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-orange-200">
+                        <p className="text-xs text-muted-foreground mb-1">Top discussion:</p>
+                        <p className="text-xs text-foreground italic">"{result.socialSignals.reddit.topDiscussion}"</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {result.socialSignals.reddit.topSubreddits.map(s => (
+                          <span key={s} className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* YouTube */}
+                  <div className="rounded-xl border border-red-200 bg-red-50/50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">▶️</span>
+                      <span className="font-bold text-sm text-foreground">YouTube India</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Est. Videos</span>
+                        <span className="text-xs font-bold text-foreground">{result.socialSignals.youtube.estimatedVideos}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Indian Creators</span>
+                        <span className="text-xs font-bold text-primary">{result.socialSignals.youtube.indianCreators}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Est. Views</span>
+                        <span className="text-xs font-bold text-foreground">{result.socialSignals.youtube.estimatedViews}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Trend</span>
+                        <span className={`text-xs font-bold ${result.socialSignals.youtube.growthTrend === "Rising" ? "text-green-600" : result.socialSignals.youtube.growthTrend === "Declining" ? "text-red-600" : "text-amber-600"}`}>
+                          {result.socialSignals.youtube.growthTrend === "Rising" ? "↑" : result.socialSignals.youtube.growthTrend === "Declining" ? "↓" : "→"} {result.socialSignals.youtube.growthTrend}
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-red-200">
+                        <p className="text-xs text-muted-foreground mb-1">Top content type:</p>
+                        <p className="text-xs text-foreground">{result.socialSignals.youtube.topVideoType}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="rounded-xl border border-pink-200 bg-pink-50/50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">📸</span>
+                      <span className="font-bold text-sm text-foreground">Instagram India</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Est. Posts</span>
+                        <span className="text-xs font-bold text-foreground">{result.socialSignals.instagram.estimatedPosts}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Indian Influencers</span>
+                        <span className="text-xs font-bold text-primary">{result.socialSignals.instagram.indianInfluencers}</span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-pink-200">
+                        <p className="text-xs text-muted-foreground mb-1">Content type:</p>
+                        <p className="text-xs text-foreground">{result.socialSignals.instagram.contentType}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {result.socialSignals.instagram.topHashtags.map(h => (
+                          <span key={h} className="text-xs bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded">{h}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* Why Trending */}
+            {result.whyTrending && !isFad && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest">Why This Is Trending in India</span>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">{result.whyTrending}</p>
+              </div>
+            )}
+
+            {/* Indian Consumer Segment */}
+            {result.indianConsumerSegment && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest">Target Indian Consumer Segment</span>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">{result.indianConsumerSegment}</p>
+              </div>
+            )}
+
             {/* Fad filter */}
             <div className="rounded-2xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -310,36 +518,108 @@ const SearchResults = () => {
               </div>
             </div>
 
+            {/* Regulatory Status */}
+            {result.regulatoryStatus && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-foreground">Regulatory Status</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground mb-1">FSSAI India</p>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getRegulatoryColor(result.regulatoryStatus.fssai)}`}>
+                      {result.regulatoryStatus.fssai}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-2">{result.regulatoryStatus.fssaiNote}</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground mb-1">FDA USA</p>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getRegulatoryColor(result.regulatoryStatus.fdaUSA)}`}>
+                      {result.regulatoryStatus.fdaUSA}
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Safety Rating</p>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getRegulatoryColor(result.regulatoryStatus.safetyRating)}`}>
+                      {result.regulatoryStatus.safetyRating}
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Clinical Studies</p>
+                    <p className="text-sm font-bold text-foreground">{result.regulatoryStatus.clinicalStudies}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Competitors */}
+            {result.competitors && result.competitors.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-foreground">Indian Market Competitors</span>
+                </div>
+                <div className="space-y-3">
+                  {result.competitors.map((c, i) => (
+                    <div key={i} className="rounded-xl border border-border bg-muted/30 p-4">
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <div>
+                          <span className="font-bold text-sm text-foreground">{c.name}</span>
+                          {c.product && <p className="text-xs text-muted-foreground mt-0.5">{c.product}</p>}
+                        </div>
+                        <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">{c.priceRange}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-xs text-green-600 font-semibold mb-0.5">✓ Strength</p>
+                          <p className="text-xs text-muted-foreground">{c.strength}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-red-500 font-semibold mb-0.5">✗ Gap / Weakness</p>
+                          <p className="text-xs text-muted-foreground">{c.weakness}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Signal + Gap */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-border bg-card p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-primary uppercase tracking-widest">The Signal</span>
+            {!isFad && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-primary uppercase tracking-widest">The Signal</span>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed">{result.signal}</p>
                 </div>
-                <p className="text-sm text-foreground leading-relaxed">{result.signal}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-xs font-bold text-destructive uppercase tracking-widest">The Gap</span>
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-xs font-bold text-destructive uppercase tracking-widest">The Gap</span>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed">{result.gap}</p>
                 </div>
-                <p className="text-sm text-foreground leading-relaxed">{result.gap}</p>
               </div>
-            </div>
+            )}
 
             {/* Opportunity */}
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="text-xs font-bold text-primary uppercase tracking-widest">The Opportunity</span>
+            {!isFad && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest">The Opportunity</span>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">{result.opportunity}</p>
               </div>
-              <p className="text-sm text-foreground leading-relaxed">{result.opportunity}</p>
-            </div>
+            )}
 
             {/* Consumer questions */}
             <div className="rounded-2xl border border-border bg-card p-5">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">What Consumers Are Asking</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">What Indian Consumers Are Searching</p>
               <div className="space-y-2.5">
                 {result.consumerQuestions.map((q) => (
                   <div key={q} className="text-sm text-foreground border-l-2 border-primary/30 pl-3 py-0.5">{q}</div>
@@ -348,7 +628,7 @@ const SearchResults = () => {
             </div>
 
             <p className="text-xs text-muted-foreground text-center pb-4">
-              Analysis based on live Google Trends India data. Market estimates are indicative — verify before product launch.
+              Google Trends data is live. Social signals are AI-estimated based on trend velocity and market data. Market estimates are indicative.
             </p>
           </div>
         )}
@@ -358,6 +638,7 @@ const SearchResults = () => {
 };
 
 export default SearchResults;
+
 
 
 

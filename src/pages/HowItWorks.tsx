@@ -53,19 +53,20 @@ const dimensions = [
 ];
 
 const dataSources = [
-  { name: "Google Trends India", purpose: "Search Velocity", keywords: "140+" },
-  { name: "Reddit (PullPush API)", purpose: "Social Proof", keywords: "20 subreddits" },
-  { name: "Amazon India", purpose: "Market Gap Analysis", keywords: "—" },
-  { name: "YouTube India", purpose: "Consumer Intent", keywords: "—" },
-  { name: "Answer The Public", purpose: "Consumer Questions", keywords: "—" },
-  { name: "PubMed", purpose: "Research Backing", keywords: "—" },
-  { name: "FSSAI Database", purpose: "Regulatory Status", keywords: "—" },
+  { name: "Google Trends India", purpose: "Search Velocity", detail: "Live data, 140+ keywords tracked" },
+  { name: "Reddit India", purpose: "Social Proof", detail: "Live Reddit signals from Indian wellness communities" },
+  { name: "YouTube India", purpose: "Consumer Intent", detail: "Creator count & view momentum" },
+  { name: "Instagram India", purpose: "Influencer Signals", detail: "Hashtag & influencer tracking" },
+  { name: "PubMed", purpose: "Research Backing", detail: "Clinical study count" },
+  { name: "FSSAI Database", purpose: "Regulatory Status", detail: "India-specific compliance check" },
+  { name: "FDA USA", purpose: "Global Regulatory", detail: "GRAS & approval status" },
 ];
 
 const fadQuestions = [
   { q: "Does it have clinical/scientific backing?", desc: "PubMed papers found" },
   { q: "Is it already mainstream in US/UK for 2+ years?", desc: "India is typically 12-18 months behind" },
   { q: "Does it solve a real pain point?", desc: "vs aspirational trend" },
+  { q: "Is there an India-specific consumer need?", desc: "Local relevance check" },
 ];
 
 const trendFlow = [
@@ -86,15 +87,14 @@ const HowItWorks = () => {
 
         {/* Data Sources */}
         <section className="mb-16">
-          <h2 className="text-xl font-bold text-foreground mb-6">The Scanning System</h2>
+          <h2 className="text-xl font-bold text-foreground mb-2">The Scanning System</h2>
+          <p className="text-sm text-muted-foreground mb-6">WellnessRadar scans live data across 7 sources to surface emerging wellness trends in India before they go mainstream.</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {dataSources.map((source) => (
               <div key={source.name} className="rounded-xl border border-border bg-card p-4 glow-card">
                 <p className="font-bold text-sm text-foreground">{source.name}</p>
                 <p className="text-xs text-primary mt-1">{source.purpose}</p>
-                {source.keywords !== "—" && (
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">{source.keywords} tracked</p>
-                )}
+                <p className="text-xs text-muted-foreground mt-1">{source.detail}</p>
               </div>
             ))}
           </div>
@@ -128,7 +128,7 @@ const HowItWorks = () => {
         <section className="mb-16">
           <h2 className="text-xl font-bold text-foreground mb-6">FAD vs REAL TREND Detector</h2>
           <div className="rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground mb-4">3 binary questions used to filter fads:</p>
+            <p className="text-sm text-muted-foreground mb-4">4 binary questions used to filter fads from real trends:</p>
             <div className="space-y-3">
               {fadQuestions.map((fq, i) => (
                 <div key={i} className="flex items-start gap-3 rounded-lg bg-background/50 border border-border p-3">
