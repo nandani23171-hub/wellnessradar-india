@@ -6,7 +6,8 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-const OPENROUTER_API_KEY = "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";
+require("dotenv").config();
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 // ── Google Trends chart data ────────────────────────────────────────────────
 app.get("/api/trends", async (req, res) => {
