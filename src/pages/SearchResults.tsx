@@ -168,7 +168,7 @@ const SearchResults = () => {
     );
 
     try {
-      const res = await fetch("https://wellnessradar-india.onrender.com", {
+      const res = await fetch("https://wellnessradar-india.onrender.com/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q }),
