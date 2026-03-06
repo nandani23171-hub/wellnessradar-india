@@ -8,7 +8,7 @@ export default defineConfig({
     port: 8081,
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://wellnessradar-india.onrender.com",
         changeOrigin: true,
       },
     },
